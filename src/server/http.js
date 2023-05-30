@@ -1,4 +1,3 @@
-const path = require('path')
 const http = require('http')
 const { serveStaticFile } = require('./fileserver')
 const { endPoints } = require('@/common/config')
@@ -12,7 +11,7 @@ const blockList = {}
 const timers = {}
 const timerStop = {}
 
-// dnsServer(subnet, blockList)
+dnsServer(subnet, blockList)
 
 const server = http.createServer((req, res) => {
   let pattern = endPoints.state
@@ -34,7 +33,6 @@ const server = http.createServer((req, res) => {
   if (req.url?.startsWith(pattern)) {
     const query = req.url.substring(pattern.length + 1)
     const params = new URLSearchParams(query)
-    console.log(params)
     const ip = params.get('ip')
     clearTimeout(timers[ip])
     delete timerStop[ip]
