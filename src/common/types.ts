@@ -1,13 +1,13 @@
-type Host = {
+export type Host = {
   name: string
   ip: string
   mac: string
 }
 
-type BlockList = {
+export type BlockList = {
   [fromIP: string]: string[] // list of blocked domains, i.e. ['youtube.com']
 }
 
-type TimerStop = {
+export type TimerStop = {
   [fromIP: string]: number // date in epoch time
 }

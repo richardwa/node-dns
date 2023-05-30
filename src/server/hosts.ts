@@ -1,6 +1,7 @@
-const request = require('request')
+import request from 'request'
+import type { Host } from '../common/types'
 
-const macName = {
+const macName: { [s: string]: string } = {
   'xx:xx:xx:xx:4A:1F': 'Google TV',
   'xx:xx:xx:xx:CF:65': 'Alexa (white)',
   'xx:xx:xx:xx:F6:20': 'Microwave',
@@ -10,9 +11,9 @@ const macName = {
   'xx:xx:xx:xx:F5:D8': 'ESP Clock'
 }
 
-let lastFetch, hosts
+let lastFetch: number, hosts: Promise<Host[]>
 
-fetchHosts = () =>
+const fetchHosts = (): Promise<Host[]> =>
   new Promise((res, rej) => {
     request(
       {
@@ -21,9 +22,14 @@ fetchHosts = () =>
           rejectUnauthorized: false
         }
       },
-      (err, resp, body) => {
-        const hosts = []
-        const leases = body.match('{dhcp_leases:: (.*?)}')[1]
+      (_err, _resp, body: string) => {
+        const hosts: Host[] = []
+        const matches = body.match('{dhcp_leases:: (.*?)}')
+        if (!matches) {
+          rej('no hosts found')
+          return
+        }
+        const leases = matches[1]
         const sp = leases.replace(/'/g, '').split(',')
         const chunkSize = 5
         const rows = Math.floor(sp.length / chunkSize)
@@ -46,12 +52,10 @@ fetchHosts = () =>
 
 hosts = fetchHosts()
 
-module.exports = {
-  getHosts: () => {
-    if (Date.now() - lastFetch > 27 * 1000) {
-      hosts = fetchHosts()
-      lastFetch = Date.now()
-    }
-    return hosts
+export const getHosts = () => {
+  if (Date.now() - lastFetch > 27 * 1000) {
+    hosts = fetchHosts()
+    lastFetch = Date.now()
   }
+  return hosts
 }

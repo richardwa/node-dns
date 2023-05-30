@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { endPoints } from '@/common/config'
 import CoutDownTimer from '@/client/components/CoutDownTimer.vue'
+import type { BlockList, Host, TimerStop } from '@/common/types'
 
 const blockList = ref<BlockList>({})
 const hosts = ref<Host[]>([])
