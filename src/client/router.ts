@@ -1,23 +1,23 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import HelloClientVue from '@/client/views/HelloClient.vue'
+import ListView from '@/client/views/ListView.vue'
 
 const staticPaths = {
-  home: '/',
-  hello: '/hello'
+  list: '/',
+  report: '/report'
 }
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: staticPaths.home,
-      name: 'home',
-      component: HelloClientVue
+      path: staticPaths.list,
+      name: 'list',
+      component: ListView
     },
     {
-      path: staticPaths.hello,
-      name: 'hello',
-      component: () => import('@/client/views/HelloServer.vue')
+      path: staticPaths.report,
+      name: 'report',
+      component: () => import('@/client/views/ReportView.vue')
     }
   ]
 })

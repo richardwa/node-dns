@@ -7,17 +7,16 @@ const { getHosts } = require('./hosts')
 
 const args = process.argv.slice(2)
 const port = args[0]
-
-const http_port = 8023
 const subnet = '192.168.2'
 const blockList = {}
 const timers = {}
 const timerStop = {}
 
-dnsServer(subnet, blockList)
+// dnsServer(subnet, blockList)
 
 const server = http.createServer((req, res) => {
-  if (req.url?.startsWith(endPoints.state)) {
+  let pattern = endPoints.state
+  if (req.url?.startsWith(pattern)) {
     getHosts().then((hosts) => {
       res.writeHead(200, { 'Content-Type': 'text/plain' })
       res.end(
@@ -31,8 +30,11 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  if (req.url?.startsWith(endPoints.block)) {
-    const params = new URLSearchParams(req.url.search)
+  pattern = endPoints.block
+  if (req.url?.startsWith(pattern)) {
+    const query = req.url.substring(pattern.length + 1)
+    const params = new URLSearchParams(query)
+    console.log(params)
     const ip = params.get('ip')
     clearTimeout(timers[ip])
     delete timerStop[ip]
@@ -42,8 +44,10 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  if (req.url?.startsWith(endPoints.unblock)) {
-    const params = new URLSearchParams(req.url.search)
+  pattern = endPoints.unblock
+  if (req.url?.startsWith(pattern)) {
+    const query = req.url.substring(pattern.length + 1)
+    const params = new URLSearchParams(query)
     const ip = params.get('ip')
     const duration = parseInt(params.get('duration'))
     clearTimeout(timers[ip])

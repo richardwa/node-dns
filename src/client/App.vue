@@ -7,8 +7,8 @@ import { staticPaths } from './router'
   <header>
     <div class="wrapper">
       <nav>
-        <RouterLink :to="staticPaths.home">Home</RouterLink> |
-        <RouterLink :to="staticPaths.hello">Server</RouterLink>
+        <RouterLink :class="$style.link" :to="staticPaths.list">List</RouterLink>
+        <RouterLink :class="$style.link" :to="staticPaths.report">Report</RouterLink>
       </nav>
     </div>
   </header>
@@ -16,4 +16,19 @@ import { staticPaths } from './router'
   <RouterView />
 </template>
 
-<style scoped></style>
+<style module>
+nav {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 10px;
+}
+.link {
+  padding: 1rem 2rem;
+  font-size: larger;
+  border: 1px solid gray;
+  border-collapse: collapse;
+  margin-right: -1px;
+  width: 10rem;
+  text-align: center;
+}
+</style>
