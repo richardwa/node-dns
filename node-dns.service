@@ -1,0 +1,17 @@
+[Unit]
+Description=node dns service
+After=network.target
+StartLimitIntervalSec=0
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=public
+ExecStart=/usr/bin/env node $root/index.js
+
+[Install]
+WantedBy=multi-user.target
+
