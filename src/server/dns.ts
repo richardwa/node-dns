@@ -1,13 +1,13 @@
 //@ts-nocheck
 import dns from 'native-dns'
 import async from 'async'
+import { log } from './log'
 
 const dns_port = 8053
-const subnet = '192.168.2'
 
 export const dnsServer = (blockList) => {
   let server = dns.createServer()
-  const gateway = `${subnet}.1`
+  const gateway = '192.168.2.1'
 
   server.on('listening', () => console.log('dns server listening on', server.address()))
   server.on('close', () => console.log('dns server closed', server.address()))
@@ -20,7 +20,7 @@ export const dnsServer = (blockList) => {
     const domain = question.name
     const list = blockList[from]
     if (list && list.reduce((a, v, y) => a || domain.endsWith(v), false)) {
-      console.log('REPORT block', from, domain)
+      log({ action: 'block', from, domain })
       response.answer.push({
         name: domain,
         type: 1,
@@ -40,8 +40,7 @@ export const dnsServer = (blockList) => {
 
     // when we get answers, append them to the response
     request.on('message', (err, msg) => {
-      console.log('REPORT allow', from, domain, msg.answer.map((a) => a.address).join())
-      //console.log(msg.answer);
+      log({ action: 'allow', from, domain, to: msg.answer.map((a) => a.address).join() })
       msg.answer.forEach((a) => response.answer.push(a))
     })
 

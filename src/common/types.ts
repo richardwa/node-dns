@@ -11,3 +11,12 @@ export type BlockList = {
 export type TimerStop = {
   [fromIP: string]: number // date in epoch time
 }
+
+export type LogData = {
+  time: string
+  now: number
+  action: 'allow' | 'block'
+  from: string
+  domain: string
+  to: string
+}
