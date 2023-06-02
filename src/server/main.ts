@@ -5,7 +5,7 @@ import { endPoints } from '@/common/config'
 import { dnsServer } from './dns'
 import { getHosts } from './hosts'
 import type { BlockList, TimerStop } from '@/common/types'
-import { logger } from './log'
+import { log } from './log'
 
 const args = process.argv.slice(2)
 const port = args[0]
@@ -34,7 +34,7 @@ const server = http.createServer((req, res) => {
   pattern = endPoints.data
   if (req.url?.startsWith(pattern)) {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
-    logger.getAllLogs(
+    log.getAllLogs(
       (line) => {
         res.write(line + '\n')
       },

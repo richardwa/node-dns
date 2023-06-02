@@ -104,4 +104,4 @@ class DataLogger {
   }
 }
 
-export const logger = new DataLogger(10000, path.join(__dirname, 'logs'))
+export const log = new DataLogger(10000, path.join(__dirname, 'logs'))
