@@ -1,6 +1,5 @@
 //@ts-nocheck
 import dns from 'native-dns'
-import async from 'async'
 import { log } from './log'
 
 const dns_port = 8053
@@ -55,12 +54,15 @@ export const dnsServer = (blockList) => {
     // since proxying is asynchronous, store all callbacks
     request.question.forEach((question) => {
       const from = request.address.address
-      f.push((cb) => proxy(from, question, response, cb))
+      const p = new Promise((res, rej) => {
+        proxy(from, question, response, res)
+      })
+      f.push(p)
     })
 
     // do the proxying in parallel
     // when done, respond to the request by sending the response
-    async.parallel(f, function () {
+    Promise.all(f).then(() => {
       response.send()
     })
   }
