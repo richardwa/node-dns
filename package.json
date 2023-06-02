@@ -16,8 +16,7 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
     "clean": "rimraf dist build",
-    "ts-node": "ts-node -r tsconfig-paths/register",
-    "start": "node ./build/server/server.js"
+    "ts-node": "ts-node -r tsconfig-paths/register"
   },
   "dependencies": {
     "native-dns": "^0.7.0",

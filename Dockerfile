@@ -4,10 +4,12 @@ FROM node:bullseye-slim
 WORKDIR /app
 
 COPY package.json ./
+COPY package-lock.json ./
 COPY build ./build
+
+RUN npm ci && npm cache clean --force
 
 # Expose the specified port
 EXPOSE 8080
 
-# Start the Node.js application
-CMD ["npm", "start", "8080"]
+CMD ["node","./build/server/server.js", "8080"]
