@@ -2,15 +2,17 @@ import type { LogData } from '@/common/types'
 import * as fs from 'fs'
 import * as path from 'path'
 import zlib from 'zlib'
-
+import readline from 'readline'
 /* 
 create a logger in typescript with the following features.
 buffer N lines until 1 hour or limit reached.
 writes to disk in gzip format.
 filename is based on current day.
+include method to retrieve all logs from file.
+ensure on destroy buffer is written out.
 */
 
-class Logger {
+class DataLogger {
   private buffer: string[] = []
   private bufferSize: number
   private bufferTimer: NodeJS.Timeout | null = null
@@ -33,6 +35,13 @@ class Logger {
     }
   }
 
+  public async onDestroy(): Promise<void> {
+    if (this.buffer.length > 0) {
+      await this.writeLogsToFile()
+    }
+    clearTimeout(this.bufferTimer!)
+  }
+
   private logFilePath() {
     const dateStr = new Date().toISOString().substring(0, 10)
     return `${this.logDirectory}/logs_${dateStr}.txt.gz`
@@ -46,7 +55,7 @@ class Logger {
     const logs = this.buffer.join('\n') + '\n'
     const gzip = zlib.createGzip()
     const logFilePath = this.logFilePath()
-    const writeStream = fs.createWriteStream(logFilePath + '.gz')
+    const writeStream = fs.createWriteStream(logFilePath)
     const compressedStream = writeStream.pipe(gzip)
 
     compressedStream.write(logs, () => {
@@ -60,50 +69,39 @@ class Logger {
     this.bufferTimer = null
   }
 
-  public getAllLogs(): Promise<LogData[]> {
-    return new Promise((resolve, reject) => {
-      fs.readdir(this.logDirectory, (err, files) => {
-        if (err) {
-          reject(err)
+  public getAllLogs(cb: (l: string) => void, done: () => void): void {
+    fs.readdir(this.logDirectory, (err, files) => {
+      if (err) {
+        return
+      }
+
+      const logFiles: string[] = []
+      files.forEach((file) => {
+        if (file.endsWith('.txt.gz')) {
+          logFiles.push(file)
+        }
+      })
+
+      const processLogFile = (index: number) => {
+        if (index === logFiles.length) {
           return
         }
 
-        const logFiles: string[] = []
-        files.forEach((file) => {
-          if (file.endsWith('.txt.gz')) {
-            logFiles.push(file)
-          }
+        const logFilePath = `${this.logDirectory}/${logFiles[index]}`
+        const readStream = fs.createReadStream(logFilePath)
+        const gunzip = zlib.createGunzip()
+        const rl = readline.createInterface({
+          input: readStream.pipe(gunzip),
+          crlfDelay: Infinity
         })
 
-        const allLogs = this.buffer.map((l) => JSON.parse(l) as LogData)
-        const processLogFile = (index: number) => {
-          if (index === logFiles.length) {
-            resolve(allLogs)
-            return
-          }
-
-          const logFilePath = `${this.logDirectory}/${logFiles[index]}`
-          const readStream = fs.createReadStream(logFilePath)
-          const gunzip = zlib.createGunzip()
-
-          readStream
-            .pipe(gunzip)
-            .on('data', (data: Buffer) => {
-              const logs = data.toString().trim().split('\n')
-              allLogs.push(...logs.map((l) => JSON.parse(l) as LogData))
-            })
-            .on('end', () => {
-              processLogFile(index + 1)
-            })
-            .on('error', (err) => {
-              reject(err)
-            })
-        }
-
-        processLogFile(0)
-      })
+        rl.on('line', cb).on('close', () => {
+          processLogFile(index + 1)
+        })
+      }
+      processLogFile(0)
     })
   }
 }
 
-export const logger = new Logger(10, path.join(__dirname, 'logs'))
+export const logger = new DataLogger(10000, path.join(__dirname, 'logs'))

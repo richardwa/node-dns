@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import HelloWorld from '@/client/components/HelloWorld.vue'
+import { endPoints } from '@/common/config'
+
+fetch(endPoints.data)
+  .then((r) => r.text())
+  .then((r) => {
+    console.log(r)
+  })
 </script>
 
 <template>
-  <main>
-    <HelloWorld msg="hello from client" />
-  </main>
+  <main>Report data</main>
 </template>
