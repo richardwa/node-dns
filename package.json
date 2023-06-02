@@ -5,7 +5,7 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "vite",
     "dev:server": "nodemon -w src/server -w src/common -x npm run ts-node src/server/main.ts 3000",
-    "build": "npm run type-check && npm run build:server && npm run build:client && zip-build",
+    "build": "npm run type-check && npm run build:server && npm run build:client",
     "build:client": "vite build --outDir build/client",
     "build:server": "vite build --outDir build/server -c vite.server.config.ts",
     "preview": "vite preview",
@@ -51,7 +51,6 @@
     "typescript": "~5.0.4",
     "vite": "^4.3.5",
     "vitest": "^0.31.0",
-    "vue-tsc": "^1.6.4",
-    "zip-build": "^1.8.0"
+    "vue-tsc": "^1.6.4"
   }
 }
