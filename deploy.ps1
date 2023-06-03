@@ -38,8 +38,10 @@ $tag = "${projectName}:$shortGitHash"
 
 $script = @"
 echo "first line not executed - not sure why"
+
 #!/bin/bash
 cd $projectName
+pwd
 docker build -t $tag .
 
 # Check if the container is running
@@ -58,12 +60,14 @@ else
   echo "Container $projectName does not exist."
 fi
 
+ip_address=`$(ip addr show enp1s0 | grep -Po 'inet \K[\d.]+')
 nohup docker run -d \
     -p 8081:8080 \
-    -p 8053:8053 \
+    -p `$ip_address:53:8053 \
     --name $projectName \
     $tag `&
 "@
 
+Write-Host $script
 $script = $script -replace "`r", ""
 ssh rich@omv bash -c $script

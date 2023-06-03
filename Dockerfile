@@ -11,4 +11,4 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Expose the specified port
 EXPOSE 8080
 
-CMD ["node","./build/server/server.js", "8080"]
+CMD ["node","./build/server/main.js", "8080"]
