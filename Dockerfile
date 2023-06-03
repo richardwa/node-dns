@@ -3,11 +3,10 @@ FROM node:bullseye-slim
 
 WORKDIR /app
 
-COPY package.json ./
-COPY package-lock.json ./
+COPY package*.json ./
 COPY build ./build
 
-RUN npm ci && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Expose the specified port
 EXPOSE 8080
