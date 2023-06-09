@@ -3,7 +3,9 @@ if (-not (Test-Path -Path Dockerfile)) {
     Write-Host "Dockerfile required at current directory"
     Exit
 }
-
+git add .
+git commit -m"update"
+npm run build
 $targetHost = 'rich@omv'
 
 # Get the current working directory path
@@ -64,6 +66,7 @@ ip_address=`$(ip addr show enp1s0 | grep -Po 'inet \K[\d.]+')
 nohup docker run -d \
     -p 8081:8080 \
     -p `$ip_address:53:8053 \
+    --restart=unless-stopped \
     --name $projectName \
     $tag `&
 "@

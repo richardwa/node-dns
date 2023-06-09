@@ -20,3 +20,7 @@ a.router-link-exact-active {
   cursor: default;
   text-decoration: none;
 }
+
+:root {
+  --gap: 0.5rem;
+}

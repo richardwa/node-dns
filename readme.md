@@ -1,29 +1,24 @@
-# template
+# Node DNS
+Simple way to log and control your DNS calls.  The web page allows controlling client's access.  I use this as parental control, so i can block individual clients.  
+Of course went the kids are smart enough to circumvent this, then I have done my job properly.
 
-npm init vue@latest // yes: router, jsx, typescript, unit test, eslint, prettier
-npm install --save-dev nodemon rimraf ts-node zip-build
+---
+## Port 53 issue
+you will not that linux itself takes port 53 for systemd-resolve,  you can get around this issue by binding on external interface, ie. 192.168.2.100:53 instead of default which is 0.0.0.0:53
 
-make template.tgz: npm pack --pack-destination dist
-untar: tar zxf {template}.tgz
-
-# prod build
-
+---
+## PROD build
 npm run build
 
 builds client package
 builds server package
 server will serve static files from client packge when run, keep files in relative to each other
 
-## to actually depoy server
-
-unzip dist/{app}.zip to folder accessible by service runner
-use os service/process management to start, pass port number to startup cmd
-node ./server/server.js {port}
-
-# dev env
-
+---
+## DEV env
 npm run dev
 
 vite will run as usual from port 5173
 server will start on port 300
 vite will proxy all calls starting with /srv to server
+
