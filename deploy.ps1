@@ -1,29 +1,25 @@
-
 if (-not (Test-Path -Path Dockerfile)) {
-    Write-Host "Dockerfile required at current directory"
-    Exit
+  Write-Host "Dockerfile required at current directory"
+  Exit
 }
+$currentDirectoryPath = Get-Location
+$projectName = Split-Path -Leaf $currentDirectoryPath
+
 git add .
 git commit -m"update"
 npm run build
+$gitHash = & git rev-parse HEAD
+$shortGitHash = $gitHash.Substring(0, 6)
+$tag = "${projectName}:$shortGitHash"
+Write-Output "commit: $gitHash, date: $(Date)" > ./build/client/version.txt
+
 $targetHost = 'rich@omv'
-
-# Get the current working directory path
-$currentDirectoryPath = Get-Location
-
-# Extract the directory name from the path
-$projectName = Split-Path -Leaf $currentDirectoryPath
-
-
+# prepare server
 ssh $targetHost "rm -rf $projectName && mkdir $projectName"
 
-# Read the Dockerfile content
-$dockerfileContent = Get-Content -Path Dockerfile
-
-# Regular expression pattern to match COPY lines
-$copyPattern = '^\s*COPY\s+(?<source>.*?)\s+(?<destination>.*?)\s*$'
-
 # Iterate through the Dockerfile content and extract COPY lines
+$dockerfileContent = Get-Content -Path Dockerfile
+$copyPattern = '^\s*COPY\s+(?<source>.*?)\s+(?<destination>.*?)\s*$'
 $dockerfileContent | Where-Object { $_ -match $copyPattern } | ForEach-Object {
     $source = $Matches['source']
     $destination = $Matches['destination']
@@ -34,10 +30,7 @@ $dockerfileContent | Where-Object { $_ -match $copyPattern } | ForEach-Object {
 }
 scp Dockerfile "${targetHost}:~/$projectName"
 
-$gitHash = & git rev-parse HEAD
-$shortGitHash = $gitHash.Substring(0, 6)
-$tag = "${projectName}:$shortGitHash"
-
+# generate remote script for deployment
 $script = @"
 echo "first line not executed - not sure why"
 
@@ -64,13 +57,13 @@ fi
 
 ip_address=`$(ip addr show enp1s0 | grep -Po 'inet \K[\d.]+')
 nohup docker run -d \
-    -p 8081:8080 \
-    -p `$ip_address:53:8053 \
-    --restart=unless-stopped \
-    --name $projectName \
-    $tag `&
+  -e TZ=America/New_York \
+  -p 8081:8081 \
+  -p `$ip_address:53:8053 \
+  --restart=unless-stopped \
+  --name $projectName \
+  $tag `&
 "@
-
 Write-Host $script
 $script = $script -replace "`r", ""
 ssh rich@omv bash -c $script
