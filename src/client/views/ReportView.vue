@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { endPoints } from '@/common/config'
+import { ref } from 'vue'
 
+const text = ref<string>()
 fetch(endPoints.data)
   .then((r) => r.text())
   .then((r) => {
-    console.log(r)
+    text.value = r
   })
 </script>
 
 <template>
-  <main>Report data</main>
+  <pre>{{ text }}</pre>
 </template>

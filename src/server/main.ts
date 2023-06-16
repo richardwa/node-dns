@@ -47,7 +47,7 @@ const server = http.createServer((req, res) => {
   if (req.url?.startsWith(pattern)) {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
     log.getLogs().then((t) => {
-      res.write(t)
+      res.write(JSON.stringify(t, null, 2))
       res.end()
     })
     return

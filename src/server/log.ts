@@ -2,18 +2,6 @@ import { formatDate } from '@/common/config'
 import type { LogData } from '@/common/types'
 import { Dirent, promises as fs } from 'fs'
 import path from 'path'
-const readFiles = <T>(f: Dirent) =>
-  fs.readFile(f.name, 'utf-8').then((s) => {
-    const lines = s.split('\n')
-    const parsed: T[] = []
-    for (const line of lines) {
-      try {
-        const t = JSON.parse(line) as T
-        parsed.push(t)
-      } catch (e) {}
-    }
-    return parsed
-  })
 
 export class Logger<T extends { date: Date }> {
   private readonly folder: string
@@ -21,6 +9,23 @@ export class Logger<T extends { date: Date }> {
     this.folder = folder
     fs.mkdir(folder, { recursive: true })
   }
+  private readFiles = (f: Dirent) =>
+    fs.readFile(path.join(this.folder, f.name), 'utf-8').then((s) => {
+      // console.log(f.name)
+      const lines = s.split('\n')
+      const parsed: T[] = []
+      for (const line of lines) {
+        try {
+          if (line && line != '') {
+            const t = JSON.parse(line) as T
+            parsed.push(t)
+          }
+        } catch (e) {
+          console.log('parse error', line, e)
+        }
+      }
+      return parsed
+    })
 
   write(msg: Partial<T>): void {
     const date = new Date()
@@ -35,15 +40,19 @@ export class Logger<T extends { date: Date }> {
     const toStr = formatDate(to)
     const files = fs
       .readdir(this.folder, { withFileTypes: true })
-      .then((entries) =>
-        Promise.all(
+      .then((entries) => {
+        // console.log(entries, fromStr, toStr)
+        return Promise.all(
           entries
             .filter((f) => f.isFile())
-            .filter((f) => f.name >= fromStr && f.name <= toStr)
-            .map(readFiles<T>)
+            .filter((f) => {
+              const date = f.name.substring(0, 10)
+              return date >= fromStr && date <= toStr
+            })
+            .map(this.readFiles)
         )
-      )
-      .then((tt) => tt.flatMap((o) => o.filter((t) => t.date >= from && t.date <= to)))
+      })
+      .then((tt) => tt.flat())
 
     return files
   }
