@@ -3,6 +3,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 
 const folder = path.join(process.cwd(), 'data', 'log')
+fs.mkdir(folder, { recursive: true })
 export const log = (msg: Partial<LogData>): void => {
   const date = new Date()
   const today = date.toLocaleDateString('en-CA')
