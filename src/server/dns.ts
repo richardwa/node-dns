@@ -1,25 +1,44 @@
-//@ts-nocheck
+// @ts-ignore
 import dns from 'native-dns'
 import { log } from './log'
+import type { BlockList } from '@/common/types'
 
 const dns_port = 8053
+type DnsAnswer = {
+  name: any
+  type: number
+  class: number
+  ttl: number
+  address: string
+}
+type DnsResponse = {
+  answer: DnsAnswer[]
+  send: () => void
+}
+type DnsQuestion = {
+  name: string
+}
+type DnsRequest = {
+  question: DnsQuestion[]
+  address: { address: string }
+}
 
-export const dnsServer = (blockList) => {
+export const dnsServer = (blockList: BlockList) => {
   let server = dns.createServer()
   const gateway = '192.168.2.1'
 
   server.on('listening', () => console.log('dns server listening on', server.address()))
   server.on('close', () => console.log('dns server closed', server.address()))
-  server.on('error', (err, buff, req, res) => console.error(err.stack))
-  server.on('socketError', (err, socket) => console.error(err))
+  server.on('error', (err: Error) => console.error(err.stack))
+  server.on('socketError', (err: Error) => console.error(err))
 
   let authority = { address: gateway, port: 53, type: 'udp' }
 
-  function proxy(from, question, response, cb) {
+  function proxy(from: string, question: DnsQuestion, response: DnsResponse, done: () => void) {
     const domain = question.name
     const list = blockList[from]
     if (list && list.reduce((a, v, y) => a || domain.endsWith(v), false)) {
-      log({ action: 'block', from, domain })
+      log.write({ action: 'block', from, domain })
       response.answer.push({
         name: domain,
         type: 1,
@@ -27,7 +46,7 @@ export const dnsServer = (blockList) => {
         ttl: 57,
         address: gateway
       })
-      cb()
+      done()
       return
     }
 
@@ -38,24 +57,27 @@ export const dnsServer = (blockList) => {
     })
 
     // when we get answers, append them to the response
-    request.on('message', (err, msg) => {
-      log({ action: 'allow', from, domain, to: msg.answer.map((a) => a.address).join() })
+    request.on('message', (err: Error, msg: DnsResponse) => {
+      log.write({
+        action: 'allow',
+        from,
+        domain,
+        to: msg.answer.map((a) => a.address).join()
+      })
       msg.answer.forEach((a) => response.answer.push(a))
     })
 
-    request.on('end', cb)
+    request.on('end', done)
     request.send()
   }
 
-  function handleRequest(request, response) {
-    let f = [] // array of functions
-    console.log('request')
-
+  function handleRequest(request: DnsRequest, response: DnsResponse) {
+    let f: Promise<void>[] = []
     // proxy all questions
     // since proxying is asynchronous, store all callbacks
-    request.question.forEach((question) => {
+    request.question.forEach((question: DnsQuestion) => {
       const from = request.address.address
-      const p = new Promise((res, rej) => {
+      const p = new Promise<void>((res, rej) => {
         proxy(from, question, response, res)
       })
       f.push(p)
