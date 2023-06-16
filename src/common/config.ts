@@ -5,3 +5,5 @@ export const endPoints = {
   unblock: `${serverBase}/unblock`,
   data: `${serverBase}/data`
 }
+
+export const formatDate = (d: Date) => d.toISOString().slice(0, 10)

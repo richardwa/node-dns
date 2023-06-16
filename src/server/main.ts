@@ -46,7 +46,11 @@ const server = http.createServer((req, res) => {
   pattern = endPoints.data
   if (req.url?.startsWith(pattern)) {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
+    log.getLogs().then(t => {
+      res.write(t)
+    })
     res.end(JSON.stringify({ msg: 'not implemented' }))
+
     return
   }
 

@@ -13,6 +13,7 @@ export type TimerStop = {
 }
 
 export type LogData = {
+  date: Date
   time: string
   now: number
   action: 'allow' | 'block'
