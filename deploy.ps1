@@ -60,6 +60,7 @@ nohup docker run -d \
   -e TZ=America/New_York \
   -p 8081:8081 \
   -p `$ip_address:53:8053 \
+  -v ${projectName}:/app/data \
   --restart=unless-stopped \
   --name $projectName \
   $tag `&

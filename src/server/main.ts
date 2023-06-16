@@ -1,11 +1,12 @@
 import http from 'http'
-import { serveStaticFile } from './fileserver'
+import { serveFolder } from './fileserver'
 import { endPoints } from '@/common/config'
 // @ts-ignore
 import { dnsServer } from './dns'
 import { getHosts } from './hosts'
 import type { BlockList, TimerStop } from '@/common/types'
 import { log } from './log'
+import path from 'path'
 
 const args = process.argv.slice(2)
 const port = args[0]
@@ -14,8 +15,19 @@ const timers: { [s: string]: NodeJS.Timeout } = {}
 const timerStop: TimerStop = {}
 
 dnsServer(blockList)
+const clientJS = path.join(process.cwd(), 'build', 'client')
+const serveClientJS = serveFolder({
+  folder: clientJS,
+  useCache: true
+})
 
 const server = http.createServer((req, res) => {
+  if (req.url === '/' || req.url === '' || req.url === null) {
+    res.writeHead(302, { Location: '/index.html' })
+    res.end()
+    return
+  }
+
   let pattern = endPoints.state
   if (req.url?.startsWith(pattern)) {
     getHosts().then((hosts) => {
@@ -34,14 +46,7 @@ const server = http.createServer((req, res) => {
   pattern = endPoints.data
   if (req.url?.startsWith(pattern)) {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
-    log.getAllLogs(
-      (line) => {
-        res.write(line + '\n')
-      },
-      () => {
-        res.end()
-      }
-    )
+    res.end(JSON.stringify({ msg: 'not implemented' }))
     return
   }
 
@@ -85,7 +90,7 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  serveStaticFile(req, res)
+  serveClientJS(req, res)
   return
 })
 

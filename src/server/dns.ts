@@ -49,6 +49,7 @@ export const dnsServer = (blockList) => {
 
   function handleRequest(request, response) {
     let f = [] // array of functions
+    console.log('request')
 
     // proxy all questions
     // since proxying is asynchronous, store all callbacks
