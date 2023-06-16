@@ -3,7 +3,17 @@ import type { LogData } from '@/common/types'
 import { Dirent, promises as fs } from 'fs'
 import path from 'path'
 const readFiles = <T>(f: Dirent) =>
-  fs.readFile(f.name, 'utf-8').then((s) => s.split('\n').map((m) => JSON.parse(m) as T))
+  fs.readFile(f.name, 'utf-8').then((s) => {
+    const lines = s.split('\n')
+    const parsed: T[] = []
+    for (const line of lines) {
+      try {
+        const t = JSON.parse(line) as T
+        parsed.push(t)
+      } catch (e) {}
+    }
+    return parsed
+  })
 
 export class Logger<T extends { date: Date }> {
   private readonly folder: string
