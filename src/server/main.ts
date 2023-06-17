@@ -46,9 +46,13 @@ handlers[getEndpoint(E.state)] = (req, res, m) => {
 }
 
 handlers[getEndpoint(E.data)] = (req, res, m) => {
-  const day = 1000 * 60 * 60 * 24
-  const from = new Date(Date.now() - 5 * day)
-  const to = new Date(Date.now() + 5 * day)
+  const query = req.url?.substring(m.length + 1)
+  const params = new URLSearchParams(query)
+  const date1 = params.get('date1')!
+  const date2 = params.get('date2')!
+
+  const from = new Date(date1)
+  const to = new Date(date2)
   res.writeHead(200, { 'Content-Type': 'text/plain' })
   logger
     .getLogs(from, to, (line) => {

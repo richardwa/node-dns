@@ -5,11 +5,13 @@ import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { TabulatorFull as Tabulator } from 'tabulator-tables'
 import { useStateStore } from '@/client/store/state-store'
+import { formatDate } from '@/common/config'
 
 const store = useStateStore()
 const { hosts } = storeToRefs(store)
-const date1 = ref<string>()
-const date2 = ref<string>()
+const day = 1000 * 60 * 60 * 24
+const date1 = ref<string>(formatDate(new Date(Date.now() - 3 * day)))
+const date2 = ref<string>(formatDate(new Date()))
 
 type HostMap = {
   [s: string]: Host
@@ -31,25 +33,27 @@ const updateGrid = () => {
   }
 }
 
-fetch(getEndpoint(E.data))
-  .then((r) => r.text())
-  .then((r) => {
-    const logdata: LogData[] = []
-    const lines = r.split('\n')
-    for (const line of lines) {
-      try {
-        const d = JSON.parse(line) as LogData
-        d.from = hostmap.value[d.from]?.name || d.from
-        logdata.push(d)
-      } catch (e) {
-        console.log('error at line', line, e)
+const apply = () =>
+  fetch(`${getEndpoint(E.data)}?date1=${date1.value}&date2=${date2.value}`)
+    .then((r) => r.text())
+    .then((r) => {
+      const logdata: LogData[] = []
+      const lines = r.split('\n')
+      for (const line of lines) {
+        try {
+          const d = JSON.parse(line) as LogData
+          d.from = hostmap.value[d.from]?.name || d.from
+          logdata.push(d)
+        } catch (e) {
+          console.log('error at line', line, e)
+        }
       }
-    }
-    data.value = logdata
-    updateGrid()
-  })
+      data.value = logdata
+      updateGrid()
+    })
 
 onMounted(() => {
+  apply()
   const _grid = new Tabulator(gridRef.value!, {
     selectable: false,
     columns: [
@@ -71,7 +75,7 @@ onMounted(() => {
       <span>Date Range: </span>
       <input :class="$style.input" type="date" v-model="date1" />
       <input :class="$style.input" type="date" v-model="date2" />
-      <button :class="$style.input">Apply</button>
+      <button :class="$style.input" @click="apply">Apply</button>
     </div>
     <div :class="$style.text">{{ data.length }} rows</div>
     <div ref="gridRef" :class="$style.grid"></div>
