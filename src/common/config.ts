@@ -1,9 +1,14 @@
-export const serverBase = '/srv'
-export const endPoints = {
-  state: `${serverBase}/state`,
-  block: `${serverBase}/block`,
-  unblock: `${serverBase}/unblock`,
-  data: `${serverBase}/data`
+export const ServerBase = '/srv' as '/srv'
+export enum EndPoint {
+  state = 'state',
+  block = 'block',
+  unblock = 'unblock',
+  data = 'data'
+}
+export const getEndpoint = (e: EndPoint) => `${ServerBase}/${e}`
+
+export type EndPointParams = {
+  [EndPoint.data]: { date1: string; date2: string }
 }
 
 export const formatDate = (d: Date) => d.toISOString().slice(0, 10)

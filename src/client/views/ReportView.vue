@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { endPoints } from '@/common/config'
+import { EndPoint as E, getEndpoint } from '@/common/config'
 import type { Host, LogData } from '@/common/types'
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -8,6 +8,9 @@ import { useStateStore } from '@/client/store/state-store'
 
 const store = useStateStore()
 const { hosts } = storeToRefs(store)
+const date1 = ref<string>()
+const date2 = ref<string>()
+
 type HostMap = {
   [s: string]: Host
 }
@@ -28,7 +31,7 @@ const updateGrid = () => {
   }
 }
 
-fetch(endPoints.data)
+fetch(getEndpoint(E.data))
   .then((r) => r.text())
   .then((r) => {
     const logdata: LogData[] = []
@@ -63,7 +66,16 @@ onMounted(() => {
 })
 </script>
 <template>
-  <div ref="gridRef" :class="$style.grid"></div>
+  <div class="v-box">
+    <div class="h-box">
+      <span>Date Range: </span>
+      <input :class="$style.input" type="date" v-model="date1" />
+      <input :class="$style.input" type="date" v-model="date2" />
+      <button :class="$style.input">Apply</button>
+    </div>
+    <div :class="$style.text">{{ data.length }} rows</div>
+    <div ref="gridRef" :class="$style.grid"></div>
+  </div>
 </template>
 <style module>
 .grid {
@@ -71,5 +83,12 @@ onMounted(() => {
   width: 100%;
   min-height: 20rem;
   height: 90vh;
+}
+.text {
+  padding: var(--gap) 0;
+}
+.input {
+  padding: var(--gap);
+  margin-right: var(--gap);
 }
 </style>

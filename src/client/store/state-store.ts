@@ -1,4 +1,4 @@
-import { endPoints } from '@/common/config'
+import { EndPoint as E, getEndpoint } from '@/common/config'
 import type { BlockList, Host, TimerStop } from '@/common/types'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -27,7 +27,7 @@ export const useStateStore = defineStore('state', () => {
   }
 
   const update = () =>
-    fetch(endPoints.state)
+    fetch(getEndpoint(E.state))
       .then((r) => r.json())
       .then((r) => {
         blockList.value = r.blockList
@@ -38,5 +38,3 @@ export const useStateStore = defineStore('state', () => {
   update()
   return { blockList, hosts, timerStop, send, update }
 })
-
-

@@ -1,6 +1,6 @@
 import http, { type IncomingMessage, type ServerResponse } from 'http'
 import { serveFolder } from './fileserver'
-import { endPoints } from '@/common/config'
+import { EndPoint as E, getEndpoint } from '@/common/config'
 // @ts-ignore
 import { dnsServer } from './dns'
 import { getHosts } from './hosts'
@@ -31,7 +31,7 @@ const handlers: {
   [s: string]: (req: IncomingMessage, res: ServerResponse, matched: string) => boolean
 } = {}
 
-handlers[endPoints.state] = (req, res, m) => {
+handlers[getEndpoint(E.state)] = (req, res, m) => {
   getHosts().then((hosts) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' })
     res.end(
@@ -45,7 +45,7 @@ handlers[endPoints.state] = (req, res, m) => {
   return true
 }
 
-handlers[endPoints.data] = (req, res, m) => {
+handlers[getEndpoint(E.data)] = (req, res, m) => {
   const day = 1000 * 60 * 60 * 24
   const from = new Date(Date.now() - 5 * day)
   const to = new Date(Date.now() + 5 * day)
@@ -61,7 +61,7 @@ handlers[endPoints.data] = (req, res, m) => {
   return true
 }
 
-handlers[endPoints.block] = (req, res, m) => {
+handlers[getEndpoint(E.block)] = (req, res, m) => {
   const query = req.url?.substring(m.length + 1)
   const params = new URLSearchParams(query)
   const ip = params.get('ip')
@@ -75,7 +75,7 @@ handlers[endPoints.block] = (req, res, m) => {
   return true
 }
 
-handlers[endPoints.unblock] = (req, res, m) => {
+handlers[getEndpoint(E.unblock)] = (req, res, m) => {
   const query = req.url?.substring(m.length + 1)
   const params = new URLSearchParams(query)
   const ip = params.get('ip') || ''
