@@ -36,10 +36,10 @@ fetch(endPoints.data)
     for (const line of lines) {
       try {
         const d = JSON.parse(line) as LogData
-        d.from = hostmap.value[d.from].name || d.from
+        d.from = hostmap.value[d.from]?.name || d.from
         logdata.push(d)
       } catch (e) {
-        console.log('error parsing', line)
+        console.log('error at line', line, e)
       }
     }
     data.value = logdata

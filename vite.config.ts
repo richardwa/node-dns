@@ -14,7 +14,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      [serverBase]: 'http://localhost:3000'
+      // [serverBase]: 'http://localhost:3000'
+      [serverBase]: 'https://dns.mangosplit.com'
     }
   }
 })
