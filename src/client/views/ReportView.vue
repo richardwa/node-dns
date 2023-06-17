@@ -19,7 +19,11 @@ fetch(endPoints.data)
     const logdata: LogData[] = []
     const lines = r.split('\n')
     for (const line of lines) {
-      logdata.push(JSON.parse(line))
+      try {
+        logdata.push(JSON.parse(line))
+      } catch (e) {
+        console.log('error parsing', line)
+      }
     }
     data.value = logdata
     updateGrid()
