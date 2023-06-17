@@ -49,14 +49,13 @@ const server = http.createServer((req, res) => {
     const from = new Date(Date.now() - 5 * day)
     const to = new Date(Date.now() + 5 * day)
     res.writeHead(200, { 'Content-Type': 'text/plain' })
-    res.write('[')
     logger
       .getLogs(from, to, (line) => {
         res.write(line)
-        res.write(',\n')
+        res.write('\n')
       })
       .then((t) => {
-        res.end('{}]')
+        res.end()
       })
     return
   }

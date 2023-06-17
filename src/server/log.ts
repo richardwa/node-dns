@@ -35,13 +35,14 @@ export class Logger<T extends { date: Date }> {
   }
 
   async compress() {
-    const fiveDaysAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 5)
-    const yesterday = new Date(Date.now() - 1000 * 60 * 60 * 24)
+    const day = 1000 * 60 * 60 * 24
+    const fiveDaysAgo = new Date(Date.now() - 5 * day)
+    const yesterday = new Date(Date.now() - day)
     const files = await this.getFileNames(fiveDaysAgo, yesterday)
     const gzip = zlib.createGzip()
-    for (const file of files) {
+    files.forEach((file) => {
       if (file.endsWith('.gz')) {
-        continue
+        return
       }
       console.log('found file for compress', file)
       const filePath = path.join(this.folder, file)
@@ -54,7 +55,7 @@ export class Logger<T extends { date: Date }> {
       destination.on('error', (error) => {
         console.log(error)
       })
-    }
+    })
   }
 
   async getFileNames(from: Date = new Date(), to: Date = new Date()): Promise<string[]> {

@@ -14,9 +14,14 @@ const updateGrid = () => {
 }
 
 fetch(endPoints.data)
-  .then((r) => r.json() as Promise<LogData[]>)
+  .then((r) => r.text())
   .then((r) => {
-    data.value = r
+    const logdata: LogData[] = []
+    const lines = r.split('\n')
+    for (const line of lines) {
+      logdata.push(JSON.parse(line))
+    }
+    data.value = logdata
     updateGrid()
   })
 
@@ -36,7 +41,6 @@ onMounted(() => {
   })
 })
 </script>
-
 <template>
   <div ref="gridRef" :class="$style.grid"></div>
 </template>
