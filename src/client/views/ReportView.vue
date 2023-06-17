@@ -1,9 +1,24 @@
 <script setup lang="ts">
 import { endPoints } from '@/common/config'
-import type { LogData } from '@/common/types'
-import { onMounted, ref } from 'vue'
+import type { Host, LogData } from '@/common/types'
+import { computed, onMounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { TabulatorFull as Tabulator } from 'tabulator-tables'
+import { useStateStore } from '@/client/store/state-store'
 
+const store = useStateStore()
+const { hosts } = storeToRefs(store)
+type HostMap = {
+  [s: string]: Host
+}
+const hostmap = computed(() =>
+  hosts.value.reduce((a, v) => {
+    if (v.name !== '*') {
+      a[v.ip] = v
+    }
+    return a
+  }, {} as HostMap)
+)
 const gridRef = ref<HTMLElement | null>(null)
 const data = ref<LogData[]>([])
 let grid: Tabulator
@@ -20,7 +35,9 @@ fetch(endPoints.data)
     const lines = r.split('\n')
     for (const line of lines) {
       try {
-        logdata.push(JSON.parse(line))
+        const d = JSON.parse(line) as LogData
+        d.from = hostmap.value[d.from].name || d.from
+        logdata.push(d)
       } catch (e) {
         console.log('error parsing', line)
       }

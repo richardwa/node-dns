@@ -1,38 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { endPoints } from '@/common/config'
 import CoutDownTimer from '@/client/components/CoutDownTimer.vue'
-import type { BlockList, Host, TimerStop } from '@/common/types'
+import { useStateStore } from '@/client/store/state-store'
 
-const blockList = ref<BlockList>({})
-const hosts = ref<Host[]>([])
-const timerStop = ref<TimerStop>({})
-
-function send(url: string) {
-  fetch(url).then(() => {
-    update()
-  })
-}
-
-const update = () =>
-  fetch(endPoints.state)
-    .then((r) => r.json())
-    .then((r) => {
-      blockList.value = r.blockList
-      timerStop.value = r.timerStop
-      hosts.value = r.hosts.sort((a: Host, b: Host) => {
-        const x = parseInt(a.ip.split('.')[3])
-        const y = parseInt(b.ip.split('.')[3])
-        if (x < y) {
-          return -1
-        }
-        if (x > y) {
-          return 1
-        }
-        return 0
-      })
-    })
-update()
+const store = useStateStore()
+const { blockList, hosts, timerStop } = storeToRefs(store)
+const { send, update } = store
 </script>
 <template>
   <table>
@@ -52,7 +26,12 @@ update()
       <td>{{ h.ip }}</td>
       <td>
         {{ h.ip in blockList ? 'Blocked' : 'Free' }}
-        <CoutDownTimer :key="timerStop[h.ip]" :stop-time="timerStop[h.ip]" @done="update" />
+        <CoutDownTimer
+          v-if="h.ip in timerStop"
+          :key="timerStop[h.ip]"
+          :stop-time="timerStop[h.ip]"
+          @done="update"
+        />
       </td>
     </tr>
   </table>

@@ -1,4 +1,4 @@
-import http from 'http'
+import http, { type IncomingMessage, type ServerResponse } from 'http'
 import { serveFolder } from './fileserver'
 import { endPoints } from '@/common/config'
 // @ts-ignore
@@ -7,6 +7,12 @@ import { getHosts } from './hosts'
 import type { BlockList, TimerStop } from '@/common/types'
 import { logger } from './log-app'
 import path from 'path'
+
+// catch-all to prevent node from exiting
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise)
+  console.error('Reason:', reason)
+})
 
 const args = process.argv.slice(2)
 const port = args[0]
@@ -21,6 +27,79 @@ const serveClientJS = serveFolder({
   useCache: true
 })
 
+const handlers: {
+  [s: string]: (req: IncomingMessage, res: ServerResponse, matched: string) => boolean
+} = {}
+
+handlers[endPoints.state] = (req, res, m) => {
+  getHosts().then((hosts) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' })
+    res.end(
+      JSON.stringify({
+        blockList,
+        hosts,
+        timerStop
+      })
+    )
+  })
+  return true
+}
+
+handlers[endPoints.data] = (req, res, m) => {
+  const day = 1000 * 60 * 60 * 24
+  const from = new Date(Date.now() - 5 * day)
+  const to = new Date(Date.now() + 5 * day)
+  res.writeHead(200, { 'Content-Type': 'text/plain' })
+  logger
+    .getLogs(from, to, (line) => {
+      res.write(line)
+      res.write('\n')
+    })
+    .then((t) => {
+      res.end()
+    })
+  return true
+}
+
+handlers[endPoints.block] = (req, res, m) => {
+  const query = req.url?.substring(m.length + 1)
+  const params = new URLSearchParams(query)
+  const ip = params.get('ip')
+  if (ip) {
+    clearTimeout(timers[ip])
+    delete timerStop[ip]
+    blockList[ip] = ['']
+    res.writeHead(200)
+    res.end()
+  }
+  return true
+}
+
+handlers[endPoints.unblock] = (req, res, m) => {
+  const query = req.url?.substring(m.length + 1)
+  const params = new URLSearchParams(query)
+  const ip = params.get('ip') || ''
+  const duration = parseInt(params.get('duration') || '0')
+  clearTimeout(timers[ip])
+  delete timerStop[ip]
+  delete blockList[ip]
+
+  if (duration) {
+    const durationMillis = duration * 60 * 1000
+    timerStop[ip] = Date.now() + durationMillis
+    timers[ip] = setTimeout(() => {
+      blockList[ip] = ['']
+      delete timerStop[ip]
+    }, durationMillis)
+  } else {
+    delete timerStop[ip]
+  }
+  res.writeHead(200)
+  res.end()
+  return true
+}
+
+const handlerKeys = Object.keys(handlers)
 const server = http.createServer((req, res) => {
   if (req.url === '/' || req.url === '' || req.url === null) {
     res.writeHead(302, { Location: '/index.html' })
@@ -28,76 +107,11 @@ const server = http.createServer((req, res) => {
     return
   }
 
-  let pattern = endPoints.state
-  if (req.url?.startsWith(pattern)) {
-    getHosts().then((hosts) => {
-      res.writeHead(200, { 'Content-Type': 'text/plain' })
-      res.end(
-        JSON.stringify({
-          blockList,
-          hosts,
-          timerStop
-        })
-      )
-    })
-    return
-  }
-
-  pattern = endPoints.data
-  if (req.url?.startsWith(pattern)) {
-    const day = 1000 * 60 * 60 * 24
-    const from = new Date(Date.now() - 5 * day)
-    const to = new Date(Date.now() + 5 * day)
-    res.writeHead(200, { 'Content-Type': 'text/plain' })
-    logger
-      .getLogs(from, to, (line) => {
-        res.write(line)
-        res.write('\n')
-      })
-      .then((t) => {
-        res.end()
-      })
-    return
-  }
-
-  pattern = endPoints.block
-  if (req.url?.startsWith(pattern)) {
-    const query = req.url.substring(pattern.length + 1)
-    const params = new URLSearchParams(query)
-    const ip = params.get('ip')
-    if (ip) {
-      clearTimeout(timers[ip])
-      delete timerStop[ip]
-      blockList[ip] = ['']
-      res.writeHead(200)
-      res.end()
+  for (const key of handlerKeys) {
+    if (req.url?.startsWith(key)) {
+      const handled = handlers[key](req, res, key)
+      if (handled) return
     }
-    return
-  }
-
-  pattern = endPoints.unblock
-  if (req.url?.startsWith(pattern)) {
-    const query = req.url.substring(pattern.length + 1)
-    const params = new URLSearchParams(query)
-    const ip = params.get('ip') || ''
-    const duration = parseInt(params.get('duration') || '0')
-    clearTimeout(timers[ip])
-    delete timerStop[ip]
-    delete blockList[ip]
-
-    if (duration) {
-      const durationMillis = duration * 60 * 1000
-      timerStop[ip] = Date.now() + durationMillis
-      timers[ip] = setTimeout(() => {
-        blockList[ip] = ['']
-        delete timerStop[ip]
-      }, durationMillis)
-    } else {
-      delete timerStop[ip]
-    }
-    res.writeHead(200)
-    res.end()
-    return
   }
 
   serveClientJS(req, res)
