@@ -1,6 +1,6 @@
 // @ts-ignore
 import dns from 'native-dns'
-import { log } from './log'
+import { logger } from './log-app'
 import type { BlockList } from '@/common/types'
 
 const dns_port = 8053
@@ -38,7 +38,7 @@ export const dnsServer = (blockList: BlockList) => {
     const domain = question.name
     const list = blockList[from]
     if (list && list.reduce((a, v, y) => a || domain.endsWith(v), false)) {
-      log.write({ action: 'block', from, domain })
+      logger.write({ action: 'block', from, domain })
       response.answer.push({
         name: domain,
         type: 1,
@@ -58,7 +58,7 @@ export const dnsServer = (blockList: BlockList) => {
 
     // when we get answers, append them to the response
     request.on('message', (err: Error, msg: DnsResponse) => {
-      log.write({
+      logger.write({
         action: 'allow',
         from,
         domain,

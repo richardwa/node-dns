@@ -1,4 +1,5 @@
 import './main.css'
+import 'tabulator-tables/dist/css/tabulator_simple.min.css'
 
 import { createApp } from 'vue'
 import App from './App.vue'

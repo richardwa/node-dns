@@ -1,61 +1,88 @@
 import { formatDate } from '@/common/config'
-import type { LogData } from '@/common/types'
-import { Dirent, promises as fs } from 'fs'
+import fs, { promises as fsp } from 'fs'
 import path from 'path'
+import * as readline from 'node:readline'
+import zlib from 'zlib'
 
 export class Logger<T extends { date: Date }> {
   private readonly folder: string
+
   constructor(folder: string) {
     this.folder = folder
-    fs.mkdir(folder, { recursive: true })
+    fsp.mkdir(folder, { recursive: true })
   }
-  private readFiles = (f: Dirent) =>
-    fs.readFile(path.join(this.folder, f.name), 'utf-8').then((s) => {
-      // console.log(f.name)
-      const lines = s.split('\n')
-      const parsed: T[] = []
-      for (const line of lines) {
-        try {
-          if (line && line != '') {
-            const t = JSON.parse(line) as T
-            parsed.push(t)
-          }
-        } catch (e) {
-          console.log('parse error', line, e)
-        }
-      }
-      return parsed
-    })
 
-  write(msg: Partial<T>): void {
+  readFile(f: string, cb: (s: string) => void): Promise<void> {
+    return new Promise<void>((res, rej) => {
+      const filePath = path.join(this.folder, f)
+      const input: NodeJS.ReadableStream = f.endsWith('gz')
+        ? fs.createReadStream(filePath).pipe(zlib.createGunzip())
+        : fs.createReadStream(filePath)
+
+      const lineReader = readline.createInterface({ input })
+      lineReader.on('line', cb)
+      lineReader.on('close', res)
+      lineReader.on('error', rej)
+    })
+  }
+
+  write(msg: Partial<T>): Promise<void> {
     const date = new Date()
     const today = formatDate(date)
     const line = JSON.stringify({ date, ...msg })
     const filePath = path.join(this.folder, `${today}.log`)
-    fs.appendFile(filePath, line + '\n')
+    return fsp.appendFile(filePath, line + '\n')
   }
 
-  getLogs(from: Date = new Date(), to: Date = new Date()): Promise<T[]> {
+  async compress() {
+    const fiveDaysAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 5)
+    const yesterday = new Date(Date.now() - 1000 * 60 * 60 * 24)
+    const files = await this.getFileNames(fiveDaysAgo, yesterday)
+    const gzip = zlib.createGzip()
+    for (const file of files) {
+      if (file.endsWith('.gz')) {
+        continue
+      }
+      console.log('found file for compress', file)
+      const filePath = path.join(this.folder, file)
+      const source = fs.createReadStream(filePath)
+      const destination = fs.createWriteStream(`${filePath}.gz`)
+      source.pipe(gzip).pipe(destination)
+      destination.on('finish', () => {
+        fsp.unlink(filePath)
+      })
+      destination.on('error', (error) => {
+        console.log(error)
+      })
+    }
+  }
+
+  async getFileNames(from: Date = new Date(), to: Date = new Date()): Promise<string[]> {
     const fromStr = formatDate(from)
     const toStr = formatDate(to)
-    const files = fs
-      .readdir(this.folder, { withFileTypes: true })
-      .then((entries) => {
-        // console.log(entries, fromStr, toStr)
-        return Promise.all(
-          entries
-            .filter((f) => f.isFile())
-            .filter((f) => {
-              const date = f.name.substring(0, 10)
-              return date >= fromStr && date <= toStr
-            })
-            .map(this.readFiles)
-        )
-      })
-      .then((tt) => tt.flat())
-
+    const files = await fsp.readdir(this.folder, { withFileTypes: true })
+    console.log('found files', files)
     return files
+      .filter((f) => {
+        if (f.isFile()) {
+          const date = f.name.substring(0, 10)
+          return date >= fromStr && date <= toStr
+        }
+        return false
+      })
+      .map((f) => f.name)
+  }
+
+  async getLogs(
+    from: Date = new Date(),
+    to: Date = new Date(),
+    cb: (s: string) => void
+  ): Promise<void> {
+    const files = await this.getFileNames(from, to)
+    const promises: Promise<void>[] = []
+    for (const file of files) {
+      promises.push(this.readFile(file, cb))
+    }
+    return Promise.all(promises).then(() => {})
   }
 }
-
-export const log = new Logger<LogData>(path.join(process.cwd(), 'data', 'log'))

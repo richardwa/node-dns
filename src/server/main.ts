@@ -5,7 +5,7 @@ import { endPoints } from '@/common/config'
 import { dnsServer } from './dns'
 import { getHosts } from './hosts'
 import type { BlockList, TimerStop } from '@/common/types'
-import { log } from './log'
+import { logger } from './log-app'
 import path from 'path'
 
 const args = process.argv.slice(2)
@@ -45,11 +45,19 @@ const server = http.createServer((req, res) => {
 
   pattern = endPoints.data
   if (req.url?.startsWith(pattern)) {
+    const day = 1000 * 60 * 60 * 24
+    const from = new Date(Date.now() - 5 * day)
+    const to = new Date(Date.now() + 5 * day)
     res.writeHead(200, { 'Content-Type': 'text/plain' })
-    log.getLogs().then((t) => {
-      res.write(JSON.stringify(t, null, 2))
-      res.end()
-    })
+    res.write('[')
+    logger
+      .getLogs(from, to, (line) => {
+        res.write(line)
+        res.write(',\n')
+      })
+      .then((t) => {
+        res.end('{}]')
+      })
     return
   }
 
