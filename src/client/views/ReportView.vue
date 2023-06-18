@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { EndPoint as E, getEndpoint } from '@/common/config'
 import type { Host, LogData } from '@/common/types'
 import { computed, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { TabulatorFull as Tabulator } from 'tabulator-tables'
 import { useStateStore } from '@/client/store/state-store'
 import { formatDate } from '@/common/config'
+import { callServer } from '@/common/http-interface-client'
 
 const store = useStateStore()
 const { hosts } = storeToRefs(store)
@@ -34,23 +34,21 @@ const updateGrid = () => {
 }
 
 const apply = () =>
-  fetch(`${getEndpoint(E.data)}?date1=${date1.value}&date2=${date2.value}`)
-    .then((r) => r.text())
-    .then((r) => {
-      const logdata: LogData[] = []
-      const lines = r.split('\n')
-      for (const line of lines) {
-        try {
-          const d = JSON.parse(line) as LogData
-          d.from = hostmap.value[d.from]?.name || d.from
-          logdata.push(d)
-        } catch (e) {
-          console.log('error at line', line, e)
-        }
+  callServer('data', date1.value, date2.value).then((text) => {
+    const logdata: LogData[] = []
+    const lines = text.split('\n')
+    for (const line of lines) {
+      try {
+        const d = JSON.parse(line) as LogData
+        d.from = hostmap.value[d.from]?.name || d.from
+        logdata.push(d)
+      } catch (e) {
+        console.log('error at line', line, e)
       }
-      data.value = logdata
-      updateGrid()
-    })
+    }
+    data.value = logdata
+    updateGrid()
+  })
 
 onMounted(() => {
   apply()

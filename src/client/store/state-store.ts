@@ -1,4 +1,4 @@
-import { EndPoint as E, getEndpoint } from '@/common/config'
+import { callServer } from '@/common/http-interface-client'
 import type { BlockList, Host, TimerStop } from '@/common/types'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -20,21 +20,12 @@ export const useStateStore = defineStore('state', () => {
   const hosts = ref<Host[]>([])
   const timerStop = ref<TimerStop>({})
 
-  function send(url: string) {
-    fetch(url).then(() => {
-      update()
-    })
-  }
-
-  const update = () =>
-    fetch(getEndpoint(E.state))
-      .then((r) => r.json())
-      .then((r) => {
-        blockList.value = r.blockList
-        timerStop.value = r.timerStop
-        hosts.value = r.hosts.sort(hostSorter)
-      })
+  const update = () => callServer('state').then((r) => {
+    blockList.value = r.blockList
+    timerStop.value = r.timerStop
+    hosts.value = r.hosts.sort(hostSorter)
+  })
 
   update()
-  return { blockList, hosts, timerStop, send, update }
+  return { blockList, hosts, timerStop, update }
 })

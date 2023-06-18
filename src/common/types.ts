@@ -21,3 +21,9 @@ export type LogData = {
   domain: string
   to: string
 }
+
+export type State = {
+  blockList: BlockList
+  timerStop: TimerStop
+  hosts: Host[]
+}

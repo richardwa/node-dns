@@ -40,14 +40,24 @@ export class Logger<T extends { date: Date }> {
     const yesterday = new Date(Date.now() - day)
     const files = await this.getFileNames(fiveDaysAgo, yesterday)
     const gzip = zlib.createGzip()
-    files.forEach((file) => {
+    files.forEach(async (file) => {
       if (file.endsWith('.gz')) {
         return
       }
+
       console.log('found file for compress', file)
       const filePath = path.join(this.folder, file)
+      const filePathGzip = `${filePath}.gz`
+      const exists = await fsp
+        .stat(filePathGzip)
+        .then(() => true)
+        .catch(() => false)
+
+      if (exists) {
+        return
+      }
       const source = fs.createReadStream(filePath)
-      const destination = fs.createWriteStream(`${filePath}.gz`)
+      const destination = fs.createWriteStream(filePathGzip)
       source.pipe(gzip).pipe(destination)
       destination.on('finish', () => {
         fsp.unlink(filePath)

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { EndPoint as E, getEndpoint } from '@/common/config'
 import CoutDownTimer from '@/client/components/CoutDownTimer.vue'
 import { useStateStore } from '@/client/store/state-store'
+import { callServer } from '@/common/http-interface-client'
 
 const store = useStateStore()
 const { blockList, hosts, timerStop } = storeToRefs(store)
-const { send, update } = store
+const { update } = store
 </script>
 <template>
   <table>
@@ -18,11 +18,9 @@ const { send, update } = store
     </tr>
     <tr v-for="h in hosts" :key="h.ip">
       <td>
-        <button @click="send(`${getEndpoint(E.block)}?ip=${h.ip}`)">block</button>
-        <button @click="send(`${getEndpoint(E.unblock)}?ip=${h.ip}`)">unblock</button>
-        <button @click="send(`${getEndpoint(E.unblock)}?ip=${h.ip}&duration=30`)">
-          unblock 30
-        </button>
+        <button @click="callServer('block', h.ip).then(update)">block</button>
+        <button @click="callServer('unblock', h.ip).then(update)">unblock</button>
+        <button @click="callServer('unblock', h.ip, 30).then(update)">unblock 30</button>
       </td>
       <td>{{ h.name }}</td>
       <td>{{ h.ip }}</td>
