@@ -1,7 +1,7 @@
 import { ServerBase, type EndPoint } from '@/common/config'
 import type { IncomingMessage, ServerResponse } from 'http'
 
-type HandlerFunc = (req: IncomingMessage, res: ServerResponse) => void
+type HandlerFunc = (req: IncomingMessage, res: ServerResponse, matchedPath: string) => void
 
 const parseReqBody = <T>(req: IncomingMessage) =>
   new Promise<T>((res, rej) => {
@@ -14,15 +14,52 @@ const parseReqBody = <T>(req: IncomingMessage) =>
         res(undefined as T)
       } else {
         const str = body.join('')
-        res(JSON.parse(str) as T)
+        if (req.headers['content-type'] === 'application/json') {
+          res(JSON.parse(str) as T)
+        } else {
+          res(str as T)
+        }
       }
+    })
+    req.on('error', (err) => {
+      rej(err)
     })
   })
 
+type MethodArgs<T extends keyof EndPoint> = {
+  req: IncomingMessage
+  res: ServerResponse
+  path: string
+  getParams: () => Promise<Parameters<EndPoint[T]>>
+}
 export class InterfaceServerManager {
   private handlers = new Map<string, HandlerFunc>()
 
-  custom(path: string, handler: HandlerFunc) {
+  register<T extends keyof EndPoint>(
+    path: T,
+    method: (a: MethodArgs<T>) => Promise<ReturnType<EndPoint[T]>> | ReturnType<EndPoint[T]>
+  ) {
+    const handler: HandlerFunc = async (req, res, matchedPath) => {
+      try {
+        const result = await method({
+          req,
+          res,
+          path: matchedPath,
+          getParams: () => parseReqBody<Parameters<EndPoint[T]>>(req)
+        })
+
+        if (result) {
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify(result))
+        } else {
+          res.end()
+        }
+      } catch (e) {
+        console.error(e)
+        res.writeHead(500)
+        res.end()
+      }
+    }
     for (const key of this.handlers.keys()) {
       if (path.startsWith(key)) {
         throw Error(`Path conflict: ${path} is covered ${key}`)
@@ -31,60 +68,11 @@ export class InterfaceServerManager {
     this.handlers.set(path, handler)
   }
 
-  registerStream<T extends keyof EndPoint>(
-    p: T,
-    m: (req: IncomingMessage, res: ServerResponse, ...a: Parameters<EndPoint[T]>) => void
-  ) {
-    const handler: HandlerFunc = async (req, res) => {
-      if (req.method === 'GET') {
-        // @ts-ignore
-        m(req, res)
-      } else if (req.method === 'POST') {
-        try {
-          const reqBody = await parseReqBody<Parameters<EndPoint[T]>>(req)
-          m(req, res, ...reqBody)
-        } catch (e) {
-          console.error(e)
-          res.writeHead(500)
-          res.end()
-        }
-      }
-    } 
-    this.custom(p, handler)
-  }
-
-  register<T extends keyof EndPoint>(
-    p: T,
-    m: (...a: Parameters<EndPoint[T]>) => ReturnType<EndPoint[T]> | Promise<ReturnType<EndPoint[T]>>
-  ) {
-    const handler: HandlerFunc = async (req, res) => {
-      if (req.method === 'GET') {
-        // @ts-ignore
-        const result = await m()
-        res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify(result))
-      } else if (req.method === 'POST') {
-        try {
-          const reqBody = await parseReqBody<Parameters<EndPoint[T]>>(req)
-          const result = await m(...reqBody)
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify(result))
-        } catch (e) {
-          console.error(e)
-          res.writeHead(500)
-          res.end()
-        }
-      }
-    }
-
-    this.custom(p, handler)
-  }
-
   exec(req: IncomingMessage, res: ServerResponse) {
     for (const [key, func] of this.handlers.entries()) {
       const path = `${ServerBase}/${key}`
       if (req.url?.startsWith(path)) {
-        func(req, res)
+        func(req, res, path)
         return true
       }
     }

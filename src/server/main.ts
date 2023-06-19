@@ -37,25 +37,28 @@ manager.register('state', async () => {
   return state
 })
 
-manager.registerStream('data', (req, res, date1, date2) => {
+manager.register('data', async ({ res, getParams }) => {
+  const [date1, date2] = await getParams()
   const from = new Date(date1)
   const to = new Date(date2)
   res.writeHead(200, { 'Content-Type': 'text/plain' })
-  logger
+  return logger
     .getLogs(from, to, (line) => {
       res.write(line)
       res.write('\n')
     })
     .then((t) => {
       res.end()
-    })
+    }) as Promise<string>
 })
-manager.register('block', (ip) => {
+manager.register('block', async ({ getParams }) => {
+  const [ip] = await getParams()
   clearTimeout(timers[ip])
   delete timerStop[ip]
   blockList[ip] = ['']
 })
-manager.register('unblock', (ip, durationMinutes?: number) => {
+manager.register('unblock', async ({ getParams }) => {
+  const [ip, durationMinutes] = await getParams()
   clearTimeout(timers[ip])
   delete timerStop[ip]
   delete blockList[ip]
